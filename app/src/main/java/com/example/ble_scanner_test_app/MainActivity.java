@@ -24,6 +24,7 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.xml.datatype.Duration;
 
@@ -80,38 +81,35 @@ public class MainActivity extends AppCompatActivity {
 
 
         // Scanning for BLE devices
-        BluetoothAdapter ba = BluetoothAdapter.getDefaultAdapter();
-
-
-        final ScanCallback mScanCallback = new ScanCallback() {
+        ScanCallback scanCallback = new ScanCallback() {
             @Override
             public void onScanResult(int callbackType, ScanResult result) {
+                boolean duplicate = false;
+                // Check for duplication
+
+
                 BluetoothDevice device = result.getDevice();
+                // Add the name and address to a ListView
                 listViewAdapter.add(device.getName() + "\n" + device.getAddress());
+
+                Toast.makeText(getApplicationContext(), "Found device " + device.getName(), Toast.LENGTH_SHORT).show();
+
             }
-        };
 
-        final BluetoothLeScanner bluetoothLeScanner = ba.getBluetoothLeScanner();
-        bluetoothLeScanner.startScan(mScanCallback);
-
-        Handler mHandler = new Handler() {
-
-        };
-        mHandler.postDelayed(new Runnable() {
             @Override
-            public void run() {
-                bluetoothLeScanner.stopScan(mScanCallback);
-                isScanning = false;
+            public void onBatchScanResults(List<ScanResult> results) {
+                super.onBatchScanResults(results);
             }
-        }, 10000);
 
+            @Override
+            public void onScanFailed(int errorCode) {
+                super.onScanFailed(errorCode);
+            }
+        };
 
+        BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+        bluetoothLeScanner.startScan(scanCallback);
 
-
-        BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-        // Add the name and address to a ListView
-        listViewAdapter.add(device.getName() + "\n" + device.getAddress());
-        Toast.makeText(getApplicationContext(),"Found device " + device.getName(), Toast.LENGTH_SHORT).show();
 
     }
 
@@ -127,4 +125,4 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-}}
+}
