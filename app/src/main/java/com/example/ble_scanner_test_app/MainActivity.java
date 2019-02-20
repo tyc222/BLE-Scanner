@@ -18,13 +18,18 @@ import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Switch;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.xml.datatype.Duration;
 
@@ -37,6 +42,11 @@ public class MainActivity extends AppCompatActivity {
 
     // Define a string adapter which will handle the data of the listview
     ArrayAdapter<String> listViewAdapter;
+
+    // SetMap for duplicated device scan
+    Set<String> unduplicatedDeviceMacAddress;
+    // Condition for the scan button
+    boolean isScanning = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
         // List of Array Strings which will serve as list items
         ArrayList<String> listItems = new ArrayList<String>();
 
+
         // /set up an adapter for listview
         listViewAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, listItems);
 
@@ -80,49 +91,80 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-        // Scanning for BLE devices
-        ScanCallback scanCallback = new ScanCallback() {
-            @Override
-            public void onScanResult(int callbackType, ScanResult result) {
-                boolean duplicate = false;
-                // Check for duplication
-
-
-                BluetoothDevice device = result.getDevice();
-                // Add the name and address to a ListView
-                listViewAdapter.add(device.getName() + "\n" + device.getAddress());
-
-                Toast.makeText(getApplicationContext(), "Found device " + device.getName(), Toast.LENGTH_SHORT).show();
-
-            }
-
-            @Override
-            public void onBatchScanResults(List<ScanResult> results) {
-                super.onBatchScanResults(results);
-            }
-
-            @Override
-            public void onScanFailed(int errorCode) {
-                super.onScanFailed(errorCode);
-            }
-        };
-
-        BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
-        bluetoothLeScanner.startScan(scanCallback);
-
-
     }
 
-    public void scanBleDevices(View view){
+    public void scanBleDevices(View view) {
 
+        // Setup BluetoothLeScanner and scanCallback
+        BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+        ScanCallback scanCallback = null;
+
+        Button scanButton = findViewById(R.id.button);
+
+        // Scanning for BLE devices
+        if (!isScanning) {
+            scanCallback = new ScanCallback() {
+                @Override
+                public void onScanResult(int callbackType, ScanResult result) {
+                    super.onScanResult(callbackType, result);
+
+                    BluetoothDevice device = result.getDevice();
+                    // Add the name and address to a ListView
+                    int checkBondState = device.getBondState();
+                    String bondState;
+                    switch (checkBondState) {
+                        case (12):
+                            bondState = "Paired";
+                            break;
+                        case (11):
+                            bondState = "Paring";
+                            break;
+                        case (10):
+                            bondState = "Unpaired";
+                            break;
+                        default:
+                            bondState = "Error";
+                            break;
+                    }
+
+                    // Double check if the device is already listed, check for duplication
+                    unduplicatedDeviceMacAddress = new HashSet<>();
+
+                    if (!unduplicatedDeviceMacAddress.contains(result.getDevice().getAddress())) {
+                        listViewAdapter.add(device.getName() + "\n" + device.getAddress() + "\n" + bondState
+                                + "\n" + device.getUuids());
+                        unduplicatedDeviceMacAddress.add(device.getAddress());
+                    }
 
                 }
 
+                @Override
+                public void onBatchScanResults(List<ScanResult> results) {
+                    super.onBatchScanResults(results);
+                }
 
+                @Override
+                public void onScanFailed(int errorCode) {
+                    super.onScanFailed(errorCode);
+                    Log.d("TAG", "Scanning Failed " + errorCode);
+                }
+            };
 
+            // Scanning
+            bluetoothLeScanner.startScan(scanCallback);
 
+            scanButton.setText("Stop Scanning");
+        }
 
+        // Stop scanning to save battery
+        if (isScanning) {
 
+            bluetoothLeScanner.stopScan(scanCallback);
+
+            scanButton.setText("Start Scanning");
+        }
+        isScanning = !isScanning;
+    }
 
 
 }
