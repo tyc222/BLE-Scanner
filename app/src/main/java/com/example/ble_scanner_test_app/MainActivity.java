@@ -201,6 +201,8 @@ public class MainActivity extends AppCompatActivity {
         if (scanning && bluetoothAdapter != null && bluetoothAdapter.isEnabled() && bluetoothLeScanner != null) {
             bluetoothLeScanner.stopScan(scanCallback);
             scanComplete();
+
+
         }
         scanCallback = null;
         scanning = false;
@@ -218,6 +220,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
+
 
 private class BtleScanCallback extends ScanCallback {
 
