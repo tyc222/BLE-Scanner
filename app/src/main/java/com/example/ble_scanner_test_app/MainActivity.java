@@ -4,7 +4,10 @@ import android.Manifest;
 import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
@@ -17,8 +20,10 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
+import android.net.MacAddress;
 import android.os.Build;
 import android.os.Handler;
+import android.os.ParcelUuid;
 import android.provider.Settings;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.DialogFragment;
@@ -39,6 +44,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.xml.datatype.Duration;
 
@@ -54,6 +60,9 @@ public class MainActivity extends AppCompatActivity {
 
     // Scanning time for the phone
     private final static int SCAN_PERIOD = 5 * 1000;
+
+    // UUID for the ble deving we are using (OTOHTR)
+    private String SERVICE_ADDRESS = ("D7:67:68:60:71:3F");
 
     // Declare bluetooth adapter
     BluetoothAdapter bluetoothAdapter;
@@ -76,12 +85,16 @@ public class MainActivity extends AppCompatActivity {
     // Handler to stop phone from scanning forever
     Handler handler;
 
+    // Gatt profile
+    BluetoothGatt Gatt;
 
 
     // SetMap for duplicated device scan
     Set<String> unduplicatedDeviceMacAddress;
     // Condition for the scan button
     boolean isScanning = false;
+    // Condition for Gatt connection
+    boolean connected = false;
 
 
     @Override
@@ -181,10 +194,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     private void startScan() {
 
+        // Add a filter for GATT server's Service UUID
+        ScanFilter scanFilter = new ScanFilter.Builder().setDeviceAddress(SERVICE_ADDRESS).build();
         List<ScanFilter> filters = new ArrayList<>();
+        filters.add(scanFilter);
+
         ScanSettings settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED).build();
         scanResults = new HashMap<>();
         scanCallback = new BtleScanCallback(scanResults);
@@ -192,12 +208,15 @@ public class MainActivity extends AppCompatActivity {
         bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
         bluetoothLeScanner.startScan(filters, settings, scanCallback);
         scanning = true;
+        // Scan ble devices for a set amount of time
         handler = new Handler();
         handler.postDelayed(this::stopScan, SCAN_PERIOD);
+
+
     }
 
     // Use the same ScanCallback to avoid unnecessary calls
-    private void stopScan () {
+    private void stopScan() {
         if (scanning && bluetoothAdapter != null && bluetoothAdapter.isEnabled() && bluetoothLeScanner != null) {
             bluetoothLeScanner.stopScan(scanCallback);
             scanComplete();
@@ -223,59 +242,96 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-private class BtleScanCallback extends ScanCallback {
+    private class BtleScanCallback extends ScanCallback {
 
 
-    private BtleScanCallback(Map<String, BluetoothDevice> scanResultMap) {
-        scanResults = scanResultMap;
-    }
+        private BtleScanCallback(Map<String, BluetoothDevice> scanResultMap) {
+            scanResults = scanResultMap;
+        }
 
-    @Override
-    public void onScanResult(int callbackType, ScanResult result) {
-        addScanResult(result);
-    }
-
-    @Override
-    public void onBatchScanResults(List<ScanResult> results) {
-        for (ScanResult result: results){
+        @Override
+        public void onScanResult(int callbackType, ScanResult result) {
             addScanResult(result);
         }
-    }
 
-    @Override
-    public void onScanFailed(int errorCode) {
-        Log.e(TAG, "BLE Scan Failed with code" + errorCode);
-    }
+        @Override
+        public void onBatchScanResults(List<ScanResult> results) {
+            for (ScanResult result : results) {
+                addScanResult(result);
+            }
+        }
 
-    private void addScanResult (ScanResult result){
-        BluetoothDevice device = result.getDevice();
-        String deviceAddress = device.getAddress();
-        String deviceName = device.getName();
-        String deviceUuid = String.valueOf(device.getUuids());
-        // Add the name and address to a ListView
-        int checkBondState = device.getBondState();
-        String bondState;
-        switch (checkBondState) {
-            case (12):
-                bondState = "Paired";
-                break;
+        @Override
+        public void onScanFailed(int errorCode) {
+            Log.e(TAG, "BLE Scan Failed with code" + errorCode);
+        }
+
+        private void addScanResult(ScanResult result) {
+            stopScan();
+            BluetoothDevice bluetoothDevice = result.getDevice();
+            connectDevice(bluetoothDevice);
+
+            // Display a listview full of scanned devices
+            String deviceAddress = bluetoothDevice.getAddress();
+            String deviceName = bluetoothDevice.getName();
+            String deviceUuid = String.valueOf(bluetoothDevice.getUuids());
+            // Add the name and address to a ListView
+            int checkBondState = bluetoothDevice.getBondState();
+            String bondState;
+            switch (checkBondState) {
+                case (12):
+                    bondState = "Paired";
+                    break;
                 case (11):
                     bondState = "Paring";
                     break;
-                    case (10):
-                        bondState = "Unpaired";
-                        break;
-                    default:
-                        bondState = "Error";
-                        break;
-                    }
-        String information =  deviceName + "\n" + bondState + "\n" + deviceAddress + "\n" + deviceUuid;
-        // Store scanned information in scanResults
-        scanResults.put(information , device);
+                case (10):
+                    bondState = "Unpaired";
+                    break;
+                default:
+                    bondState = "Error";
+                    break;
+            }
+            String information = deviceName + "\n" + bondState + "\n" + deviceAddress + "\n" + deviceUuid;
+            // Store scanned information in scanResults
+            scanResults.put(information, bluetoothDevice);
+        }
     }
-}
 
+    private void connectDevice(BluetoothDevice device) {
+        Log.d(TAG, "Connecting to " + device.getAddress());
+        GattCallback gattCallback = new GattCallback();
+        Gatt = device.connectGatt(this, false, gattCallback);
+    }
 
+    private class GattCallback extends BluetoothGattCallback {
+        @Override
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+            super.onConnectionStateChange(gatt, status, newState);
+            if (status == BluetoothGatt.GATT_FAILURE) {
+                disconnectGattServer();
+                return;
+            } else if (status != BluetoothGatt.GATT_SUCCESS) {
+                disconnectGattServer();
+                return;
+            }
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                connected = true;
+            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                disconnectGattServer();
+            }
+
+        }
+    }
+
+    // Disconnect Gatt Server
+    public void disconnectGattServer() {
+        connected = false;
+        if (Gatt != null) {
+            Gatt.disconnect();
+            Gatt.close();
+        }
+    }
 
     public void scanBleDevices(View view) {
         listViewAdapter.clear();
