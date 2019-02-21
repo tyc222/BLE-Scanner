@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
     private final static int SCAN_PERIOD = 5 * 1000;
 
     // UUID for the ble deving we are using (OTOHTR)
-    private String SERVICE_ADDRESS = ("D7:67:68:60:71:3F");
+    private String SERVICE_NAME = "OTOHTR";
 
     // Declare bluetooth adapter
     BluetoothAdapter bluetoothAdapter;
@@ -196,8 +196,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void startScan() {
 
-        // Add a filter for GATT server's Service UUID
-        ScanFilter scanFilter = new ScanFilter.Builder().setDeviceAddress(SERVICE_ADDRESS).build();
+        // Add a filter (Service Name) to GATT
+        ScanFilter scanFilter = new ScanFilter.Builder().setDeviceName(SERVICE_NAME).build();
         List<ScanFilter> filters = new ArrayList<>();
         filters.add(scanFilter);
 
@@ -299,7 +299,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void connectDevice(BluetoothDevice device) {
-        Log.d(TAG, "Connecting to " + device.getAddress());
+        // Display a listview full of scanned devices
+        String deviceAddress = device.getAddress();
+        String deviceName = device.getName();
+        String deviceUuid = String.valueOf(device.getUuids());
+        // Add the name and address to a ListView
+        int checkBondState = device.getBondState();
+        String bondState;
+        switch (checkBondState) {
+            case (12):
+                bondState = "Paired";
+                break;
+            case (11):
+                bondState = "Paring";
+                break;
+            case (10):
+                bondState = "Unpaired";
+                break;
+            default:
+                bondState = "Error";
+                break;
+        }
+        Log.d(TAG, "Connecting to " + deviceName + "\n" + bondState + "\n" + deviceAddress + "\n" + deviceUuid);
+        listViewAdapter.add(deviceName + "\n" + bondState + "\n" + deviceAddress + "\n" + deviceUuid);
         GattCallback gattCallback = new GattCallback();
         Gatt = device.connectGatt(this, false, gattCallback);
     }
