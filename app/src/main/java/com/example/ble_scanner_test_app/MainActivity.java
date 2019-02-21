@@ -214,9 +214,10 @@ public class MainActivity extends AppCompatActivity {
         if (scanResults.isEmpty()) {
             return;
         }
-        for (String deviceAddress : scanResults.keySet()) {
-            Log.d(TAG, "Found device: " + deviceAddress);
-            listViewAdapter.add(deviceAddress);
+        // Read information from scanResults
+        for (String information : scanResults.keySet()) {
+            Log.d(TAG, "Found device: " + information);
+            listViewAdapter.add(information);
         }
 
     }
@@ -249,16 +250,36 @@ private class BtleScanCallback extends ScanCallback {
     private void addScanResult (ScanResult result){
         BluetoothDevice device = result.getDevice();
         String deviceAddress = device.getAddress();
-        scanResults.put(deviceAddress, device);
+        String deviceName = device.getName();
+        String deviceUuid = String.valueOf(device.getUuids());
+        // Add the name and address to a ListView
+        int checkBondState = device.getBondState();
+        String bondState;
+        switch (checkBondState) {
+            case (12):
+                bondState = "Paired";
+                break;
+                case (11):
+                    bondState = "Paring";
+                    break;
+                    case (10):
+                        bondState = "Unpaired";
+                        break;
+                    default:
+                        bondState = "Error";
+                        break;
+                    }
+        String information =  deviceName + "\n" + bondState + "\n" + deviceAddress + "\n" + deviceUuid;
+        // Store scanned information in scanResults
+        scanResults.put(information , device);
     }
 }
 
 
 
     public void scanBleDevices(View view) {
-
-        //test
-        startScan();
+        listViewAdapter.clear();
+startScan();
 //
 //        // Setup BluetoothLeScanner and scanCallback
 //        BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
