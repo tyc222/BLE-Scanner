@@ -5,7 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".MainActivity">
+    tools:context=".MainActivity"
+    android:focusableInTouchMode="true">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -42,7 +43,8 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        >
 
         <Button
             android:id="@+id/sendButton"
@@ -62,7 +64,8 @@
             android:layout_weight="1"
             android:gravity="center"
             android:ems="10"
-            android:hint="Enter Input" />
+            android:hint="Enter Input"
+            />
 
 
     </LinearLayout>

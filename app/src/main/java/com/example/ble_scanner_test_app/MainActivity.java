@@ -76,6 +76,10 @@ public class MainActivity extends AppCompatActivity {
     // BLE device characteristic UUID AKA TX Characteristic
     private UUID TX_CHARACTERISTIC_UUID = UUID.fromString("6e400003-b5a3-f393-e0a9-e50e24dcca9e");
 
+    // BLE device characteristic UUID AKA RX Characteristic
+    private UUID RX_CHARACTERISTIC_UUID = UUID.fromString("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
+
+
     // Declare bluetooth adapter
     BluetoothAdapter bluetoothAdapter;
 
@@ -304,7 +308,6 @@ public class MainActivity extends AppCompatActivity {
         // Display a listview full of scanned devices
         String deviceAddress = device.getAddress();
         String deviceName = device.getName();
-        String deviceUuid = String.valueOf(device.getUuids());
         // Add the name and address to a ListView
         int checkBondState = device.getBondState();
         String bondState;
@@ -323,8 +326,8 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
         listViewAdapter.clear();
-        Log.d(TAG, "Connecting to " + deviceName + "\n" + bondState + "\n" + deviceAddress + "\n" + deviceUuid);
-        listViewAdapter.add(deviceName + "\n" + bondState + "\n" + deviceAddress + "\n" + deviceUuid);
+        Log.d(TAG, "Connecting to " + deviceName + "\n" + bondState + "\n" + deviceAddress + "\n");
+        listViewAdapter.add(deviceName + "\n" + bondState + "\n" + deviceAddress + "\n");
         GattCallback gattCallback = new GattCallback();
         // Connecting phone to BLE device
         Gatt = device.connectGatt(this, true, gattCallback);
@@ -363,7 +366,7 @@ public class MainActivity extends AppCompatActivity {
             characteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
             timeInitialized = gatt.setCharacteristicNotification(characteristic, true);
             Log.d(TAG, "Initializing: setting write type and enabling notification");
-            //
+
         }
 
         @Override
@@ -418,7 +421,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         BluetoothGattService service = Gatt.getService(SERVICE_UUID);
-        BluetoothGattCharacteristic characteristic = service.getCharacteristic(TX_CHARACTERISTIC_UUID);
+        BluetoothGattCharacteristic characteristic = service.getCharacteristic(RX_CHARACTERISTIC_UUID);
         String message = inputText.getText().toString();
         // We need to convert our message from String to byte[] in order to send data
         byte [] messageBytes = new byte[0];
