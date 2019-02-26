@@ -22,7 +22,7 @@
             android:layout_gravity="center"/>
 
         <Button
-            android:id="@+id/button"
+            android:id="@+id/scanButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
@@ -37,7 +37,34 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_alignParentBottom="true"
-        android:layout_weight="3"/>
+        android:layout_weight="2" />
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/sendButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:onClick="sendInput"
+            android:text="send input"
+
+
+            />
+
+        <EditText
+            android:id="@+id/inputEditText"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:ems="10"
+            android:hint="Enter Input" />
+
+
+    </LinearLayout>
 
 </LinearLayout>

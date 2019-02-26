@@ -6,6 +6,10 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattServer;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
@@ -34,10 +38,12 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Switch;
 import android.widget.Toast;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -61,8 +67,14 @@ public class MainActivity extends AppCompatActivity {
     // Scanning time for the phone
     private final static int SCAN_PERIOD = 5 * 1000;
 
-    // UUID for the ble deving we are using (OTOHTR)
+    // Ask device to pair with the ble deving named (OTOHTR)
     private String SERVICE_NAME = "OTOHTR";
+
+    // BLE device UUID
+    private UUID SERVICE_UUID = UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
+
+    // BLE device characteristic UUID AKA TX Characteristic
+    private UUID TX_CHARACTERISTIC_UUID = UUID.fromString("6e400003-b5a3-f393-e0a9-e50e24dcca9e");
 
     // Declare bluetooth adapter
     BluetoothAdapter bluetoothAdapter;
@@ -80,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
     Map<String, BluetoothDevice> scanResults;
 
     // Determine if the phone is scanning
-    Boolean scanning = false;
+    boolean scanning = false;
 
     // Handler to stop phone from scanning forever
     Handler handler;
@@ -88,6 +100,14 @@ public class MainActivity extends AppCompatActivity {
     // Gatt profile
     BluetoothGatt Gatt;
 
+    // To notify the characteristic is ready to use
+    boolean timeInitialized;
+
+    // To
+    boolean echoInitaialized;
+
+    // Edit text view from the user
+    EditText inputText;
 
     // SetMap for duplicated device scan
     Set<String> unduplicatedDeviceMacAddress;
@@ -186,6 +206,9 @@ public class MainActivity extends AppCompatActivity {
         ListView list = (ListView) findViewById(R.id.list_view_ble_devlice);
         list.setAdapter(listViewAdapter);
 
+        // Find the edit text box for inputText
+        inputText = (EditText) findViewById(R.id.inputEditText);
+
         //Set up bluetooth adapter and ble services on phone
         final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         bluetoothAdapter = bluetoothManager.getAdapter();
@@ -210,7 +233,9 @@ public class MainActivity extends AppCompatActivity {
         scanning = true;
         // Scan ble devices for a set amount of time
         handler = new Handler();
-        handler.postDelayed(this::stopScan, SCAN_PERIOD);
+        handler.postDelayed(() -> {
+            stopScan();
+        }, SCAN_PERIOD);
 
 
     }
@@ -233,13 +258,15 @@ public class MainActivity extends AppCompatActivity {
         if (scanResults.isEmpty()) {
             return;
         }
-        // Read information from scanResults
-        for (String information : scanResults.keySet()) {
-            Log.d(TAG, "Found device: " + information);
-            listViewAdapter.add(information);
-        }
+//        // Read information from scanResults
+//        for (String information : scanResults.keySet()) {
+//            Log.d(TAG, "Found device: " + information);
+//            listViewAdapter.add(information);
+//        }
 
     }
+
+
 
 
     private class BtleScanCallback extends ScanCallback {
@@ -270,31 +297,6 @@ public class MainActivity extends AppCompatActivity {
             stopScan();
             BluetoothDevice bluetoothDevice = result.getDevice();
             connectDevice(bluetoothDevice);
-
-            // Display a listview full of scanned devices
-            String deviceAddress = bluetoothDevice.getAddress();
-            String deviceName = bluetoothDevice.getName();
-            String deviceUuid = String.valueOf(bluetoothDevice.getUuids());
-            // Add the name and address to a ListView
-            int checkBondState = bluetoothDevice.getBondState();
-            String bondState;
-            switch (checkBondState) {
-                case (12):
-                    bondState = "Paired";
-                    break;
-                case (11):
-                    bondState = "Paring";
-                    break;
-                case (10):
-                    bondState = "Unpaired";
-                    break;
-                default:
-                    bondState = "Error";
-                    break;
-            }
-            String information = deviceName + "\n" + bondState + "\n" + deviceAddress + "\n" + deviceUuid;
-            // Store scanned information in scanResults
-            scanResults.put(information, bluetoothDevice);
         }
     }
 
@@ -320,12 +322,15 @@ public class MainActivity extends AppCompatActivity {
                 bondState = "Error";
                 break;
         }
+        listViewAdapter.clear();
         Log.d(TAG, "Connecting to " + deviceName + "\n" + bondState + "\n" + deviceAddress + "\n" + deviceUuid);
         listViewAdapter.add(deviceName + "\n" + bondState + "\n" + deviceAddress + "\n" + deviceUuid);
         GattCallback gattCallback = new GattCallback();
-        Gatt = device.connectGatt(this, false, gattCallback);
+        // Connecting phone to BLE device
+        Gatt = device.connectGatt(this, true, gattCallback);
     }
 
+    // Know if we are connected or not with he BLE device
     private class GattCallback extends BluetoothGattCallback {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
@@ -339,31 +344,108 @@ public class MainActivity extends AppCompatActivity {
             }
             if (newState == BluetoothProfile.STATE_CONNECTED) {
                 connected = true;
+                gatt.discoverServices();
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 disconnectGattServer();
             }
 
         }
+
+        @Override
+        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+            super.onServicesDiscovered(gatt, status);
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                return;
+            }
+            BluetoothGattService service = gatt.getService(SERVICE_UUID);
+            Log.d(TAG, "Acquiring service");
+            BluetoothGattCharacteristic characteristic = service.getCharacteristic(TX_CHARACTERISTIC_UUID);
+            characteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+            timeInitialized = gatt.setCharacteristicNotification(characteristic, true);
+            Log.d(TAG, "Initializing: setting write type and enabling notification");
+            //
+        }
+
+        @Override
+        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            super.onCharacteristicRead(gatt, characteristic, status);
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.d(TAG,"Characteristic read successfully");
+
+            }else {
+                Log.d(TAG, "Characteristic read unsuccessful, status: " + status);}
+        }
+
+        @Override
+        public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            super.onCharacteristicWrite(gatt, characteristic, status);
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.d(TAG,"Characteristic written successfully");
+            }else {
+                Log.d(TAG, "Characteristic write unsuccessful, status: " + status);
+                disconnectGattServer();
+            }
+        }
+
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+            super.onCharacteristicChanged(gatt, characteristic);
+            byte [] messageBytes = characteristic.getValue();
+            String messageString = null;
+            try{
+                messageString = new String(messageBytes, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                Log.e(TAG, " Unable to convert message bytes to string");
+            }
+            Log.d(TAG, messageString);
+        }
+
     }
 
     // Disconnect Gatt Server
     public void disconnectGattServer() {
         connected = false;
+        echoInitaialized = false;
         if (Gatt != null) {
             Gatt.disconnect();
             Gatt.close();
         }
     }
 
+    // Sending messaging to BLE device
+    private void sendMessage () {
+        if (!connected || !echoInitaialized) {
+            return;
+        }
+        BluetoothGattService service = Gatt.getService(SERVICE_UUID);
+        BluetoothGattCharacteristic characteristic = service.getCharacteristic(TX_CHARACTERISTIC_UUID);
+        String message = inputText.getText().toString();
+        // We need to convert our message from String to byte[] in order to send data
+        byte [] messageBytes = new byte[0];
+        try {
+            messageBytes = message.getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            Log.e(TAG, "Failed to convert message string to byte array");
+        }
+        // Set the value on Characteristic to send our message
+        characteristic.setValue(messageBytes);
+        boolean success = Gatt.writeCharacteristic(characteristic);
+        if (success) {
+            Log.d(TAG, "Successful");
+        } else {
+            Log.d(TAG,"Failed to write data");
+        }
+    }
+
     public void scanBleDevices(View view) {
-        listViewAdapter.clear();
+
 startScan();
 //
 //        // Setup BluetoothLeScanner and scanCallback
 //        BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
 //        ScanCallback scanCallback = null;
 //
-//        Button scanButton = findViewById(R.id.button);
+//        Button scanButton = findViewById(R.id.scanButton);
 //
 //        // Scanning for BLE devices
 //        if (!isScanning) {
@@ -427,5 +509,8 @@ startScan();
 //        isScanning = !isScanning;
     }
 
+    public void sendInput(View view) {
+        sendMessage();
+    }
 
 }
