@@ -79,6 +79,10 @@ public class MainActivity extends AppCompatActivity {
     // BLE device characteristic UUID AKA RX Characteristic
     private UUID RX_CHARACTERISTIC_UUID = UUID.fromString("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
 
+    // BLE device characteristic UUID AKA Client Characteristic Configuration Descriptor
+    private UUID CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
+
+
 
     // Declare bluetooth adapter
     BluetoothAdapter bluetoothAdapter;
@@ -369,7 +373,7 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "Initializing: setting write type and enabling notification");
 
             // Ask the BLE device to send packet to phone when something changes
-            BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"));
+            BluetoothGattDescriptor descriptor = characteristic.getDescriptor(CCCD_UUID);
             descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
             gatt.writeDescriptor(descriptor);
             Log.d(TAG, "Initialized: enabled notification");
