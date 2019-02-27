@@ -330,7 +330,7 @@ public class MainActivity extends AppCompatActivity {
         listViewAdapter.add(deviceName + "\n" + bondState + "\n" + deviceAddress + "\n");
         GattCallback gattCallback = new GattCallback();
         // Connecting phone to BLE device
-        Gatt = device.connectGatt(this, true, gattCallback);
+        Gatt = device.connectGatt(this, false, gattCallback);
     }
 
     // Know if we are connected or not with he BLE device
@@ -345,7 +345,7 @@ public class MainActivity extends AppCompatActivity {
                 disconnectGattServer();
                 return;
             }
-            if (newState == BluetoothProfile.STATE_CONNECTED) {
+            if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED) {
                 connected = true;
                 gatt.discoverServices();
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
@@ -354,6 +354,7 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
+        // New services discovered
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             super.onServicesDiscovered(gatt, status);
@@ -367,14 +368,21 @@ public class MainActivity extends AppCompatActivity {
             timeInitialized = gatt.setCharacteristicNotification(characteristic, true);
             Log.d(TAG, "Initializing: setting write type and enabling notification");
 
+            // Ask the BLE device to send packet to phone when something changes
+            BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString("00002902-0000-1000-8000-00805f9b34fb"));
+            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+            gatt.writeDescriptor(descriptor);
+            Log.d(TAG, "Initialized: enabled notification");
         }
 
+        // Result of a characteristic read operation
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             super.onCharacteristicRead(gatt, characteristic, status);
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.d(TAG,"Characteristic read successfully");
-
+                // Extra string value of data in characteristic
+                Log.d(TAG, "read value: " + String.valueOf(characteristic.getValue()));
             }else {
                 Log.d(TAG, "Characteristic read unsuccessful, status: " + status);}
         }
@@ -390,6 +398,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        // Triggered when BLE device sends a packet to phone
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
@@ -397,6 +406,7 @@ public class MainActivity extends AppCompatActivity {
             String messageString = null;
             try{
                 messageString = new String(messageBytes, "UTF-8");
+                Log.d(TAG, "BLE message: " + messageString);
             } catch (UnsupportedEncodingException e) {
                 Log.e(TAG, " Unable to convert message bytes to string");
             }
@@ -438,6 +448,14 @@ public class MainActivity extends AppCompatActivity {
         } else {
             Log.d(TAG,"Failed to write data");
         }
+    }
+
+    public void close() {
+        if (Gatt == null) {
+            return;
+        }
+        Gatt.close();
+        Gatt = null;
     }
 
     public void scanBleDevices(View view) {
