@@ -83,12 +83,14 @@ public class MainActivity extends AppCompatActivity {
     private UUID CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
 
-
     // Declare bluetooth adapter
     BluetoothAdapter bluetoothAdapter;
 
-    // Define a string adapter which will handle the data of the listview
+    // Define a string adapter which will handle the data of the device listview
     ArrayAdapter<String> listViewAdapter;
+
+    // Define a string adapter which will handle the data of the response listview
+    ArrayAdapter<String> listViewAdapterResponse;
 
     // Define a ble Scanner object
     BluetoothLeScanner bluetoothLeScanner;
@@ -117,10 +119,6 @@ public class MainActivity extends AppCompatActivity {
     // Edit text view from the user
     EditText inputText;
 
-    // SetMap for duplicated device scan
-    Set<String> unduplicatedDeviceMacAddress;
-    // Condition for the scan button
-    boolean isScanning = false;
     // Condition for Gatt connection
     boolean connected = false;
 
@@ -207,12 +205,22 @@ public class MainActivity extends AppCompatActivity {
         ArrayList<String> listItems = new ArrayList<String>();
 
 
-        // /set up an adapter for listview
+        // set up an adapter for listview
         listViewAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, listItems);
 
         // set the data to our listview
-        ListView list = (ListView) findViewById(R.id.list_view_ble_devlice);
+        ListView list = (ListView) findViewById(R.id.list_view_ble_device);
         list.setAdapter(listViewAdapter);
+
+        // List of Array Strings which will serve as response list items
+        ArrayList<String> listItemResponses = new ArrayList<String>();
+
+        // set up an adapter for response listview
+        listViewAdapterResponse = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, listItemResponses);
+
+        // set the data to our response listview
+        ListView responseList = (ListView) findViewById(R.id.list_view_ble_device_response);
+        responseList.setAdapter(listViewAdapterResponse);
 
         // Find the edit text box for inputText
         inputText = (EditText) findViewById(R.id.inputEditText);
@@ -411,6 +419,8 @@ public class MainActivity extends AppCompatActivity {
             try{
                 messageString = new String(messageBytes, "UTF-8");
                 Log.d(TAG, "BLE message: " + messageString);
+                // Clear the listview first then add response
+                listViewAdapterResponse.add("BLE message: " + messageString);
             } catch (UnsupportedEncodingException e) {
                 Log.e(TAG, " Unable to convert message bytes to string");
             }
@@ -464,74 +474,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void scanBleDevices(View view) {
 
-startScan();
-//
-//        // Setup BluetoothLeScanner and scanCallback
-//        BluetoothLeScanner bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
-//        ScanCallback scanCallback = null;
-//
-//        Button scanButton = findViewById(R.id.scanButton);
-//
-//        // Scanning for BLE devices
-//        if (!isScanning) {
-//            scanCallback = new ScanCallback() {
-//                @Override
-//                public void onScanResult(int callbackType, ScanResult result) {
-//                    super.onScanResult(callbackType, result);
-//
-//                    BluetoothDevice device = result.getDevice();
-//                    // Add the name and address to a ListView
-//                    int checkBondState = device.getBondState();
-//                    String bondState;
-//                    switch (checkBondState) {
-//                        case (12):
-//                            bondState = "Paired";
-//                            break;
-//                        case (11):
-//                            bondState = "Paring";
-//                            break;
-//                        case (10):
-//                            bondState = "Unpaired";
-//                            break;
-//                        default:
-//                            bondState = "Error";
-//                            break;
-//                    }
-//
-//                    // Double check if the device is already listed, check for duplication
-//                    unduplicatedDeviceMacAddress = new HashSet<>();
-//
-//                    if (!unduplicatedDeviceMacAddress.contains(result.getDevice().getAddress())) {
-//                        listViewAdapter.add(device.getName() + "\n" + device.getAddress() + "\n" + bondState
-//                                + "\n" + device.getUuids());
-//                        unduplicatedDeviceMacAddress.add(device.getAddress());
-//                    }
-//
-//                }
-//
-//                @Override
-//                public void onBatchScanResults(List<ScanResult> results) {
-//                    super.onBatchScanResults(results);
-//                }
-//
-//                @Override
-//                public void onScanFailed(int errorCode) {
-//                    super.onScanFailed(errorCode);
-//                    Log.d(TAG, "Scanning Failed " + errorCode);
-//                }
-//            };
-//
-//            // Scanning
-//            bluetoothLeScanner.startScan(scanCallback);
-//
-//            scanButton.setText("Stop Scanning");
-//        }
-//
-//        // Stop scanning to save battery
-//        if (isScanning) {
-//
-//        }
-//        isScanning = !isScanning;
+        startScan();
     }
 
     public void sendInput(View view) {
