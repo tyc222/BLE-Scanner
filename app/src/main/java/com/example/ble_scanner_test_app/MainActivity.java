@@ -25,8 +25,11 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
 import android.net.MacAddress;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.os.ParcelUuid;
 import android.provider.Settings;
 import android.support.annotation.RequiresApi;
@@ -34,6 +37,7 @@ import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.method.CharacterPickerDialog;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -44,13 +48,16 @@ import android.widget.Switch;
 import android.widget.Toast;
 
 import java.io.UnsupportedEncodingException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collector;
 
 import javax.xml.datatype.Duration;
 
@@ -82,6 +89,11 @@ public class MainActivity extends AppCompatActivity {
     // BLE device characteristic UUID AKA Client Characteristic Configuration Descriptor
     private UUID CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
+    // byte for BLE response
+    byte [] messageBytes;
+
+    // String for BLE response text
+    String messageString;
 
     // Declare bluetooth adapter
     BluetoothAdapter bluetoothAdapter;
@@ -110,17 +122,23 @@ public class MainActivity extends AppCompatActivity {
     // Gatt profile
     BluetoothGatt Gatt;
 
+    // Bluetooth Gatt Characteristic for Asynctask
+    BluetoothGattCharacteristic asyncCharacteristic;
+
     // To notify the characteristic is ready to use
     boolean timeInitialized;
 
     // To
-    boolean echoInitaialized;
+    boolean echoInitaialized = true;
 
     // Edit text view from the user
     EditText inputText;
 
     // Condition for Gatt connection
     boolean connected = false;
+
+    // Current Time
+    String currentTime;
 
 
     @Override
@@ -204,7 +222,6 @@ public class MainActivity extends AppCompatActivity {
         // List of Array Strings which will serve as list items
         ArrayList<String> listItems = new ArrayList<String>();
 
-
         // set up an adapter for listview
         listViewAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, listItems);
 
@@ -229,9 +246,7 @@ public class MainActivity extends AppCompatActivity {
         final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         bluetoothAdapter = bluetoothManager.getAdapter();
 
-
     }
-
 
     private void startScan() {
 
@@ -414,20 +429,56 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
-            byte [] messageBytes = characteristic.getValue();
-            String messageString = null;
+            asyncCharacteristic = characteristic;
+
+            // Record time of this event
+            long date = System.currentTimeMillis();
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm:ss");
+            currentTime = simpleDateFormat.format(date);
+
+            // Execute BleResponseTask to fetch and update Ble response message
+            new BleResponseTask().execute();
+
+        }
+
+        @Override
+        public void onDescriptorRead(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+            super.onDescriptorRead(gatt, descriptor, status);
+        }
+
+        @Override
+        public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+            super.onDescriptorWrite(gatt, descriptor, status);
+        }
+    }
+
+    // Fetch Ble response message and update to the UI by using an AsyncTask loader
+    private class BleResponseTask extends AsyncTask< Void, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+
+            messageBytes = asyncCharacteristic.getValue();
+
             try{
                 messageString = new String(messageBytes, "UTF-8");
-                Log.d(TAG, "BLE message: " + messageString);
-                // Clear the listview first then add response
-                listViewAdapterResponse.add("BLE message: " + messageString);
+                Log.d(TAG, currentTime + "\n" + "BLE message: " + messageString + "\n" + "BLE hex: " + bytesToHex(messageBytes));
+
             } catch (UnsupportedEncodingException e) {
                 Log.e(TAG, " Unable to convert message bytes to string");
             }
-            Log.d(TAG, messageString);
+            return null;
         }
 
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+
+            // Add responses to the listview
+            listViewAdapterResponse.add(currentTime + "\n" + "BLE message: " + messageString + "\n" + "BLE hex: " + bytesToHex(messageBytes));
+        }
     }
+
 
     // Disconnect Gatt Server
     public void disconnectGattServer() {
@@ -440,27 +491,34 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Sending messaging to BLE device
-    private void sendMessage () {
-        if (!connected || !echoInitaialized) {
-            return;
-        }
+    private void write () {
+//        if (!connected || !echoInitaialized) {
+//            return;
+//        }
         BluetoothGattService service = Gatt.getService(SERVICE_UUID);
-        BluetoothGattCharacteristic characteristic = service.getCharacteristic(RX_CHARACTERISTIC_UUID);
+        BluetoothGattCharacteristic writeCharacteristic = service.getCharacteristic(RX_CHARACTERISTIC_UUID);
         String message = inputText.getText().toString();
         // We need to convert our message from String to byte[] in order to send data
-        byte [] messageBytes = new byte[0];
+        byte [] messageWriteBytes = new byte[0];
         try {
-            messageBytes = message.getBytes("UTF-8");
+            messageWriteBytes = message.getBytes("UTF-8");
         } catch (UnsupportedEncodingException e) {
             Log.e(TAG, "Failed to convert message string to byte array");
         }
         // Set the value on Characteristic to send our message
-        characteristic.setValue(messageBytes);
-        boolean success = Gatt.writeCharacteristic(characteristic);
+        writeCharacteristic.setValue(messageWriteBytes);
+        writeCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+        boolean success = Gatt.writeCharacteristic(writeCharacteristic);
         if (success) {
+            inputText.setText("");
             Log.d(TAG, "Successful");
+            // Add operation result to the listview
+            listViewAdapterResponse.add(currentTime + "\n" + "BLE message: " + "Characteristic written successfully");
         } else {
+            inputText.setText("");
             Log.d(TAG,"Failed to write data");
+            // Add operation result to the listview
+            listViewAdapterResponse.add(currentTime + "\n" + "BLE message: " + "Failed to write data");
         }
     }
 
@@ -472,13 +530,25 @@ public class MainActivity extends AppCompatActivity {
         Gatt = null;
     }
 
+    // For converting bytes to hex
+    private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for ( int j = 0; j < bytes.length; j++ ) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+
     public void scanBleDevices(View view) {
 
         startScan();
     }
 
     public void sendInput(View view) {
-        sendMessage();
+        write();
     }
 
 }
