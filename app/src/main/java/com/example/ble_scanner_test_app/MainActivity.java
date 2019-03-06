@@ -255,7 +255,7 @@ public class MainActivity extends AppCompatActivity {
         List<ScanFilter> filters = new ArrayList<>();
         filters.add(scanFilter);
 
-        ScanSettings settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED).build();
+        ScanSettings settings = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
         scanResults = new HashMap<>();
         scanCallback = new BtleScanCallback(scanResults);
 
@@ -461,8 +461,10 @@ public class MainActivity extends AppCompatActivity {
             messageBytes = asyncCharacteristic.getValue();
 
             try{
+                // Add String and Hex responses to the log
                 messageString = new String(messageBytes, "UTF-8");
-                Log.d(TAG, currentTime + "\n" + "BLE message: " + messageString + "\n" + "BLE hex: " + bytesToHex(messageBytes));
+                Log.d(TAG, currentTime + "\n" + "BLE message: " + messageString);
+                Log.d(TAG, currentTime + "\n" + "BLE hex: " + bytesToHex(messageBytes));
 
             } catch (UnsupportedEncodingException e) {
                 Log.e(TAG, " Unable to convert message bytes to string");
@@ -474,8 +476,9 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
 
-            // Add responses to the listview
-            listViewAdapterResponse.add(currentTime + "\n" + "BLE message: " + messageString + "\n" + "BLE hex: " + bytesToHex(messageBytes));
+            // Add String and Hex responses to the listview
+            listViewAdapterResponse.add(currentTime + "\n" + "BLE message: " + messageString);
+            listViewAdapterResponse.add(currentTime + "\n" + "BLE hex: " + bytesToHex(messageBytes));
         }
     }
 
@@ -492,9 +495,9 @@ public class MainActivity extends AppCompatActivity {
 
     // Sending messaging to BLE device
     private void write () {
-//        if (!connected || !echoInitaialized) {
-//            return;
-//        }
+        if (!connected) {
+            return;
+        }
         BluetoothGattService service = Gatt.getService(SERVICE_UUID);
         BluetoothGattCharacteristic writeCharacteristic = service.getCharacteristic(RX_CHARACTERISTIC_UUID);
         String message = inputText.getText().toString();
@@ -507,7 +510,7 @@ public class MainActivity extends AppCompatActivity {
         }
         // Set the value on Characteristic to send our message
         writeCharacteristic.setValue(messageWriteBytes);
-        writeCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+        writeCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
         boolean success = Gatt.writeCharacteristic(writeCharacteristic);
         if (success) {
             inputText.setText("");
