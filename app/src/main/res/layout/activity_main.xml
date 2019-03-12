@@ -50,29 +50,37 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        >
+        android:gravity="center"
+        android:orientation="vertical">
 
-        <Button
-            android:id="@+id/sendButton"
+        <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:onClick="sendInput"
-            android:text="send input"
+            android:layout_height="wrap_content">
 
+            <Button
+                android:id="@+id/sendButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="sendInput"
+                android:text="send input" />
 
-            />
+            <Button
+                android:id="@+id/sendCMD11Button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="sendTestingInput"
+                android:text="send testing input" />
+
+        </LinearLayout>
 
         <EditText
             android:id="@+id/inputEditText"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:gravity="center"
             android:ems="10"
-            android:hint="Enter Input"
-            />
+            android:gravity="center"
+            android:hint="Enter Input" />
 
 
     </LinearLayout>

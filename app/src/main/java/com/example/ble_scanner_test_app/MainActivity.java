@@ -64,6 +64,13 @@ import javax.xml.datatype.Duration;
 
 public class MainActivity extends AppCompatActivity {
 
+    /**
+    Variable Storage for the App
+     */
+
+    // Testing: to see if the app is working
+    byte[] CMD_11 = hexStringToByteArray("A0A1000111110D0A");
+
     private static final String TAG = "Activity";
 
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
@@ -141,6 +148,9 @@ public class MainActivity extends AppCompatActivity {
     // Current Time
     String currentTime;
 
+    /**
+     * Request and check BLE and Location permissions
+     */
 
     @Override
     protected void onStart() {
@@ -201,6 +211,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     *Check whether phone supports BLE.
+     * Instantiate Views
+     * Set up Bluetooth Adapter
+     * @param savedInstanceState
+     */
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -248,6 +265,10 @@ public class MainActivity extends AppCompatActivity {
         bluetoothAdapter = bluetoothManager.getAdapter();
 
     }
+
+    /**
+     * Scan operations - Start, Stop, Complete
+     */
 
     private void startScan() {
 
@@ -298,7 +319,10 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-
+    /**
+     * Callback from the BLE scan
+     * Connect the device once scan result returns positive
+     */
 
 
     private class BtleScanCallback extends ScanCallback {
@@ -361,6 +385,11 @@ public class MainActivity extends AppCompatActivity {
         Gatt = device.connectGatt(this, false, gattCallback);
     }
 
+    /**
+     * Connect to GATT in order to receive, read, write characteristics.
+     * Use an AsyncTask to update the UI when phone is notified by the BLE device.
+     */
+
     // Know if we are connected or not with he BLE device
     private class GattCallback extends BluetoothGattCallback {
         @Override
@@ -372,7 +401,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             } else if (status != BluetoothGatt.GATT_SUCCESS) {
                 disconnectGattServer();
-                Log.d(TAG, "GATT Not Success, Trying to Connect Again");
+                Log.d(TAG, "GATT Not Success");
                 return;
             }
             if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED) {
@@ -431,7 +460,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // Triggered when BLE device sends a packet to phone
+        // Triggered when BLE device sends a packet to phone (When notified by the BLE device)
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
@@ -463,7 +492,7 @@ public class MainActivity extends AppCompatActivity {
                 // Add String and Hex responses to the log
                 messageString = new String(messageBytes, "UTF-8");
                 Log.d(TAG, currentTime + "\n" + "BLE message: " + messageString);
-//                Log.d(TAG, currentTime + "\n" + "BLE hex: " + bytesToHex(messageBytes));
+                Log.d(TAG, currentTime + "\n" + "BLE hex: " + bytes2HexString(messageBytes));
 
             } catch (UnsupportedEncodingException e) {
                 Log.e(TAG, " Unable to convert message bytes to string");
@@ -477,7 +506,7 @@ public class MainActivity extends AppCompatActivity {
 
             // Add String and Hex responses to the listview
             listViewAdapterResponse.add(currentTime + "\n" + "BLE message: " + messageString);
-//            listViewAdapterResponse.add(currentTime + "\n" + "BLE hex: " + bytesToHex(messageBytes));
+            listViewAdapterResponse.add(currentTime + "\n" + "BLE hex: " + bytes2HexString(messageBytes));
         }
     }
 
@@ -492,7 +521,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Sending messaging to BLE device
+    // Method to send message to BLE device
     private void write () {
         if (!connected) {
             return;
@@ -526,6 +555,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // Method to close Gatt connection
     public void close() {
         if (Gatt == null) {
             return;
@@ -534,19 +564,27 @@ public class MainActivity extends AppCompatActivity {
         Gatt = null;
     }
 
-    // For converting bytes to hex
-    private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
-    public static String bytesToHex(byte[] bytes) {
-        char[] hexChars = new char[bytes.length * 2];
-        for ( int j = 0; j < bytes.length; j++ ) {
-            int v = bytes[j] & 0xFF;
-            hexChars[j * 2] = hexArray[v >>> 4];
-            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+    /**
+     * Functions for conversions
+     */
+
+    // Function for converting bytes to hex
+    private static final char hexDigits[] =
+            {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+
+    public static String bytes2HexString(final byte[] bytes) {
+        if (bytes == null) return null;
+        int len = bytes.length;
+        if (len <= 0) return null;
+        char[] ret = new char[len << 1];
+        for (int i = 0, j = 0; i < len; i++) {
+            ret[j++] = hexDigits[bytes[i] >>> 4 & 0x0f];
+            ret[j++] = hexDigits[bytes[i] & 0x0f];
         }
-        return new String(hexChars);
+        return new String(ret);
     }
 
-    // For converting hex to bytes
+    // Function for converting hex to bytes
     public static byte[] hexStringToByteArray(String s) {
         int len = s.length();
         byte[] data = new byte[len / 2];
@@ -557,7 +595,7 @@ public class MainActivity extends AppCompatActivity {
         return data;
     }
 
-    // For converting hex to String
+    // Function for converting hex to String
     public String getHexToString(String strValue) {
         int intCounts = strValue.length() / 2;
         String strReturn = "";
@@ -581,13 +619,41 @@ public class MainActivity extends AppCompatActivity {
         return strReturn;
     }
 
-    public void scanBleDevices(View view) {
+    /**
+    Buttons
+     */
 
+    // OnClick for the scan button, which scans for BLE devices
+    public void scanBleDevices(View view) {
         startScan();
     }
 
+    // OnClick for the send message button, which sends cmd to BLE deices
     public void sendInput(View view) {
         write();
+    }
+
+    // Testing button
+    public void sendTestingInput(View view) {
+        BluetoothGattService service = Gatt.getService(SERVICE_UUID);
+        BluetoothGattCharacteristic writeCharacteristic = service.getCharacteristic(RX_CHARACTERISTIC_UUID);
+        Log.d(TAG,"Sending message: " + CMD_11);
+        // Set the value on Characteristic to send our message
+        writeCharacteristic.setValue(CMD_11);
+        writeCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+        boolean success = Gatt.writeCharacteristic(writeCharacteristic);
+
+        if (success) {
+            inputText.setText("");
+            Log.d(TAG, "Characteristic written successfully");
+            // Add operation result to the listview
+            listViewAdapterResponse.add(currentTime + "\n" + "BLE message: " + "Characteristic written successfully");
+        } else {
+            inputText.setText("");
+            Log.d(TAG,"Failed to write data");
+            // Add operation result to the listview
+            listViewAdapterResponse.add(currentTime + "\n" + "BLE message: " + "Failed to write data");
+        }
     }
 
 }
