@@ -68,9 +68,6 @@ public class MainActivity extends AppCompatActivity {
     Variable Storage for the App
      */
 
-    // Testing: to see if the app is working
-    byte[] CMD_11 = hexStringToByteArray("A0A1000111110D0A");
-
     private static final String TAG = "Activity";
 
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
@@ -532,13 +529,13 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG,"Sending message: " + message);
         // We need to convert our message from String to byte[] in order to send data
         byte [] messageWriteBytes = new byte[0];
-        try {
-            messageWriteBytes = message.getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            Log.e(TAG, "Failed to convert message string to byte array");
-        }
+        messageWriteBytes = hexStringToByteArray(message);
+        //
+        byte[] builtCMDBytes = buildCMD(messageWriteBytes);
+        Log.d(TAG,"Sending CMD bytes message in hex: " + bytes2HexString(builtCMDBytes));
+
         // Set the value on Characteristic to send our message
-        writeCharacteristic.setValue(messageWriteBytes);
+        writeCharacteristic.setValue(builtCMDBytes);
         writeCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
         boolean success = Gatt.writeCharacteristic(writeCharacteristic);
 
@@ -619,6 +616,70 @@ public class MainActivity extends AppCompatActivity {
         return strReturn;
     }
 
+    // Function for converting java int to UNIT8
+    public static byte intToUint8Byte(int value) {
+        return (byte) value;
+    }
+
+    // Function for building CMD
+    protected static final int PACKAGE_MAX_LENGTH = 80;
+    protected static final int PACKAGE_BASE_LENGTH = 7;
+    protected static final int PACKAGE_START1_INDEX = 0;
+    protected static final int PACKAGE_START2_INDEX = 1;
+    protected static final int PACKAGE_PAYLOAD_LENGTH_START_INDEX = 2;
+    protected static final int PACKAGE_PAYLOAD_LENGTH_END_INDEX = 3;
+    protected static final int PACKAGE_COMMAND_ID_INDEX = 4;
+
+    protected static final byte PACKAGE_START1_VALUE = intToUint8Byte(0xA0);
+    protected static final byte PACKAGE_START2_VALUE = intToUint8Byte(0xA1);
+    protected static final byte CR = intToUint8Byte(0x0D);
+    protected static final byte LF = intToUint8Byte(0x0A);
+
+    public static final byte COMMAND_ACK_N = intToUint8Byte(0x00);
+    public static final byte COMMAND_ACK = intToUint8Byte(0x01);
+    public static final byte COMMAND_ACK_P = intToUint8Byte(0x02);
+    public static final byte COMMAND_REQ_STATUS = intToUint8Byte(0x11);
+    public static final byte COMMAND_ALERT_APP = intToUint8Byte(0x15);
+    public static final byte COMMAND_UNLOCK = intToUint8Byte(0x21);
+    public static final byte COMMAND_LOG = intToUint8Byte(0x24);
+
+    //To parse data from gatt characteristic.
+
+    final synchronized byte[] buildCMD(byte[] cmdPayload) {
+        int cmdPayloadLength = cmdPayload.length;
+        if (cmdPayloadLength > (PACKAGE_MAX_LENGTH - PACKAGE_BASE_LENGTH)) {
+            throw new UnsupportedOperationException("only support 73 bytes");
+        }
+
+        byte[] pkgData = new byte[cmdPayloadLength + PACKAGE_BASE_LENGTH];
+        pkgData[0] = PACKAGE_START1_VALUE;
+        pkgData[1] = PACKAGE_START2_VALUE;
+        byte[] msb16PayloadLength= msbUint16ToBytes(cmdPayloadLength);
+        pkgData[2] = msb16PayloadLength[0];
+        pkgData[3] = msb16PayloadLength[1];
+        System.arraycopy(cmdPayload, 0, pkgData, 4, cmdPayloadLength);
+        pkgData[cmdPayloadLength + 4] = u8CheckSum(cmdPayload);
+        pkgData[cmdPayloadLength + 5] = CR;
+        pkgData[cmdPayloadLength + 6] = LF;
+        return pkgData;
+    }
+
+    final byte u8CheckSum(final byte[] buffer) {
+        byte payloadCheckSum = 0;
+        for (byte aBuffer : buffer) {
+            payloadCheckSum = (byte) (payloadCheckSum ^ aBuffer);
+        }
+        return payloadCheckSum;
+    }
+
+
+    // Converting msb unit16 to bytes
+    public static byte[] msbUint16ToBytes(int value) {
+        byte[] bytes = new byte[2];
+        bytes[0] = (byte) ((value & 0xFF00) >> 8);
+        bytes[1] = (byte) (value & 0xFF);
+        return bytes;}
+
     /**
     Buttons
      */
@@ -632,28 +693,4 @@ public class MainActivity extends AppCompatActivity {
     public void sendInput(View view) {
         write();
     }
-
-    // Testing button
-    public void sendTestingInput(View view) {
-        BluetoothGattService service = Gatt.getService(SERVICE_UUID);
-        BluetoothGattCharacteristic writeCharacteristic = service.getCharacteristic(RX_CHARACTERISTIC_UUID);
-        Log.d(TAG,"Sending message: " + CMD_11);
-        // Set the value on Characteristic to send our message
-        writeCharacteristic.setValue(CMD_11);
-        writeCharacteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
-        boolean success = Gatt.writeCharacteristic(writeCharacteristic);
-
-        if (success) {
-            inputText.setText("");
-            Log.d(TAG, "Characteristic written successfully");
-            // Add operation result to the listview
-            listViewAdapterResponse.add(currentTime + "\n" + "BLE message: " + "Characteristic written successfully");
-        } else {
-            inputText.setText("");
-            Log.d(TAG,"Failed to write data");
-            // Add operation result to the listview
-            listViewAdapterResponse.add(currentTime + "\n" + "BLE message: " + "Failed to write data");
-        }
-    }
-
 }

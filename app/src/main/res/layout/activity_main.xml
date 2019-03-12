@@ -53,10 +53,6 @@
         android:gravity="center"
         android:orientation="vertical">
 
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
-
             <Button
                 android:id="@+id/sendButton"
                 android:layout_width="wrap_content"
@@ -64,14 +60,6 @@
                 android:onClick="sendInput"
                 android:text="send input" />
 
-            <Button
-                android:id="@+id/sendCMD11Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:onClick="sendTestingInput"
-                android:text="send testing input" />
-
-        </LinearLayout>
 
         <EditText
             android:id="@+id/inputEditText"
