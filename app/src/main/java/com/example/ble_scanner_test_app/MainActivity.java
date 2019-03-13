@@ -693,4 +693,10 @@ public class MainActivity extends AppCompatActivity {
     public void sendInput(View view) {
         write();
     }
+
+    // OnClick for the disconnect button, which restarts the activity
+    public void disconnect(View view) {
+        close();
+        recreate();
+    }
 }
