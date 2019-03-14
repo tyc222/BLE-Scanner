@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:focusableInTouchMode="true"
+    tools:context=".MessageWithDevice">
+
+    <ListView
+        android:id="@+id/list_view_ble_device_response"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_alignParentBottom="true"
+        android:layout_weight="2" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:id="@+id/sendButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="send input" />
+
+            <Button
+                android:id="@+id/disconnectButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="disconnect" />
+
+        </LinearLayout>
+
+        <EditText
+            android:id="@+id/inputEditText"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:ems="10"
+            android:gravity="center"
+            android:hint="Enter Input" />
+
+
+    </LinearLayout>
+
+</LinearLayout>
