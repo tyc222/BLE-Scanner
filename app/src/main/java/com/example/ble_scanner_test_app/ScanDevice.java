@@ -235,6 +235,14 @@ public class ScanDevice extends Fragment {
         ListView list = (ListView) rootView.findViewById(R.id.list_view_ble_device);
         list.setAdapter(listViewAdapter);
 
+        // make listview items clickable
+        list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+               Toast.makeText(getActivity(),"Swipe left to communicate with your device", Toast.LENGTH_SHORT).show();
+            }
+        });
+
 
         //Set up bluetooth adapter and ble services on phone
         final BluetoothManager bluetoothManager = (BluetoothManager) getActivity().getSystemService(Context.BLUETOOTH_SERVICE);
@@ -535,7 +543,6 @@ public class ScanDevice extends Fragment {
 
         if (success) {
             inputText.setText("");
-            Log.d(TAG, "Characteristic written successfully");
             // Add operation result to the listview
             listViewAdapterResponse.add(currentTime + "\n" + "BLE message: " + "Characteristic written successfully");
         } else {
@@ -586,34 +593,14 @@ public class ScanDevice extends Fragment {
         return data;
     }
 
-    // Function for converting hex to String
-    public String getHexToString(String strValue) {
-        int intCounts = strValue.length() / 2;
-        String strReturn = "";
-        String strHex = "";
-        int intHex = 0;
-        byte byteData[] = new byte[intCounts];
-        try {
-            for (int intI = 0; intI < intCounts; intI++) {
-                strHex = strValue.substring(0, 2);
-                strValue = strValue.substring(2);
-                intHex = Integer.parseInt(strHex, 16);
-                if (intHex > 128)
-                    intHex = intHex - 256;
-                byteData[intI] = (byte) intHex;
-            }
-            strReturn = new String(byteData,"ISO8859-1");
-        }
-        catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        return strReturn;
-    }
-
     // Function for converting java int to UNIT8
     public static byte intToUint8Byte(int value) {
         return (byte) value;
     }
+
+    /**
+     * Function for building CMD from integer input by the user
+     */
 
     // Function for building CMD
     protected static final int PACKAGE_MAX_LENGTH = 80;
