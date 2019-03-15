@@ -29,13 +29,17 @@
                 android:id="@+id/sendButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="send input" />
+                android:backgroundTint="#2691F0"
+                android:text="send input"
+                android:textColor="@android:color/white" />
 
             <Button
                 android:id="@+id/disconnectButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="disconnect" />
+                android:backgroundTint="#2691F0"
+                android:text="disconnect"
+                android:textColor="@android:color/white" />
 
         </LinearLayout>
 

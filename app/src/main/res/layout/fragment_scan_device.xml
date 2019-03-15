@@ -19,6 +19,7 @@
             android:layout_centerHorizontal="true"
             android:layout_centerVertical="false"
             android:text="BLE Devices"
+            android:textColor="@android:color/black"
             android:textSize="24sp" />
 
         <Button
@@ -26,7 +27,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="scan for ble devices" />
+            android:backgroundTint="#2691F0"
+            android:elevation="0dp"
+            android:text="scan for ble devices"
+            android:textColor="@android:color/white" />
 
     </RelativeLayout>
 
