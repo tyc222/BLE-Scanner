@@ -20,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Set Fragment Title
+        // Set Activity Title
         setTitle("OTOHUNTER UNLOCKER");
 
         mViewPager = findViewById(R.id.container);
