@@ -33,6 +33,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -57,7 +58,7 @@ public class ScanDevice extends Fragment {
 
 
     /**
-     Variable Storage for the App
+     * Variable Storage for the App
      */
 
     private static final String TAG = "Activity";
@@ -87,7 +88,7 @@ public class ScanDevice extends Fragment {
     private UUID CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
     // byte for BLE response
-    byte [] messageBytes;
+    byte[] messageBytes;
 
     // String for BLE response text
     String messageString;
@@ -200,9 +201,10 @@ public class ScanDevice extends Fragment {
     }
 
     /**
-     *Check whether phone supports BLE.
+     * Check whether phone supports BLE.
      * Instantiate Views
      * Set up Bluetooth Adapter
+     *
      * @param savedInstanceState
      */
 
@@ -239,7 +241,7 @@ public class ScanDevice extends Fragment {
         list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-               Toast.makeText(getActivity(),"Swipe left to communicate with your device", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity(), "Swipe left to communicate with your device", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -304,12 +306,6 @@ public class ScanDevice extends Fragment {
         if (scanResults.isEmpty()) {
             return;
         }
-//        // Read information from scanResults
-//        for (String information : scanResults.keySet()) {
-//            Log.d(TAG, "Found device: " + information);
-//            listViewAdapter.add(information);
-//        }
-
     }
 
     /**
@@ -433,11 +429,12 @@ public class ScanDevice extends Fragment {
         public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             super.onCharacteristicRead(gatt, characteristic, status);
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.d(TAG,"Characteristic read successfully");
+                Log.d(TAG, "Characteristic read successfully");
                 // Extra string value of data in characteristic
                 Log.d(TAG, "read value: " + String.valueOf(characteristic.getValue()));
-            }else {
-                Log.d(TAG, "Characteristic read unsuccessful, status: " + status);}
+            } else {
+                Log.d(TAG, "Characteristic read unsuccessful, status: " + status);
+            }
         }
 
         @Override
@@ -446,8 +443,8 @@ public class ScanDevice extends Fragment {
 
 
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.d(TAG,"Characteristic written successfully, status: "  + status);
-            }else {
+                Log.d(TAG, "Characteristic written successfully, status: " + status);
+            } else {
                 Log.d(TAG, "Characteristic write unsuccessful, status: " + status);
                 disconnectGattServer();
             }
@@ -474,18 +471,18 @@ public class ScanDevice extends Fragment {
     }
 
     // Fetch Ble response message and update to the UI by using an AsyncTask loader
-    private class BleResponseTask extends AsyncTask< Void, Void, Void> {
+    private class BleResponseTask extends AsyncTask<Void, Void, Void> {
 
         @Override
         protected Void doInBackground(Void... voids) {
 
             messageBytes = asyncCharacteristic.getValue();
 
-            try{
+            try {
                 // Add String and Hex responses to the log
                 messageString = new String(messageBytes, "UTF-8");
                 Log.d(TAG, currentTime + "\n" + "BLE message: " + messageString);
-                Log.d(TAG, currentTime + "\n" + "BLE hex: " + bytes2HexString(messageBytes));
+//                Log.d(TAG, currentTime + "\n" + "BLE hex: " + bytes2HexString(messageBytes));
 
             } catch (UnsupportedEncodingException e) {
                 Log.e(TAG, " Unable to convert message bytes to string");
@@ -499,7 +496,7 @@ public class ScanDevice extends Fragment {
 
             // Add String and Hex responses to the listview
             listViewAdapterResponse.add(currentTime + "\n" + "BLE message: " + messageString);
-            listViewAdapterResponse.add(currentTime + "\n" + "BLE hex: " + bytes2HexString(messageBytes));
+//            listViewAdapterResponse.add(currentTime + "\n" + "BLE hex: " + bytes2HexString(messageBytes));
         }
     }
 
@@ -522,19 +519,19 @@ public class ScanDevice extends Fragment {
         BluetoothGattService service = Gatt.getService(SERVICE_UUID);
         BluetoothGattCharacteristic writeCharacteristic = service.getCharacteristic(RX_CHARACTERISTIC_UUID);
         String message = inputText.getText().toString();
-        Log.d(TAG,"Sending message: " + message);
+        Log.d(TAG, "Sending message: " + message);
         // We need to convert our message from String to byte[] in order to send data
-        byte [] messageWriteBytes = new byte[0];
+        byte[] messageWriteBytes = new byte[0];
         // Let the user know if the CMD they input is incorrect
-        try{
+        try {
             messageWriteBytes = hexStringToByteArray(message);
-        } catch(StringIndexOutOfBoundsException exception) {
-            Toast.makeText(context ,"Please Add A 0 Before Your Number", Toast.LENGTH_SHORT).show();
+        } catch (StringIndexOutOfBoundsException exception) {
+            Toast.makeText(context, "Please Add A 0 Before Your Number", Toast.LENGTH_SHORT).show();
             inputText.setText("");
             return;
         }
         byte[] builtCMDBytes = buildCMD(messageWriteBytes);
-        Log.d(TAG,"Sending CMD bytes message in hex: " + bytes2HexString(builtCMDBytes));
+        Log.d(TAG, "Sending CMD bytes message in hex: " + bytes2HexString(builtCMDBytes));
 
         // Set the value on Characteristic to send our message
         writeCharacteristic.setValue(builtCMDBytes);
@@ -547,7 +544,7 @@ public class ScanDevice extends Fragment {
             listViewAdapterResponse.add(currentTime + "\n" + "BLE message: " + "Characteristic written successfully");
         } else {
             inputText.setText("");
-            Log.d(TAG,"Failed to write data");
+            Log.d(TAG, "Failed to write data");
             // Add operation result to the listview
             listViewAdapterResponse.add(currentTime + "\n" + "BLE message: " + "Failed to write data");
         }
@@ -588,7 +585,7 @@ public class ScanDevice extends Fragment {
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {
             data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-                    + Character.digit(s.charAt(i+1), 16));
+                    + Character.digit(s.charAt(i + 1), 16));
         }
         return data;
     }
@@ -605,26 +602,10 @@ public class ScanDevice extends Fragment {
     // Function for building CMD
     protected static final int PACKAGE_MAX_LENGTH = 80;
     protected static final int PACKAGE_BASE_LENGTH = 7;
-    protected static final int PACKAGE_START1_INDEX = 0;
-    protected static final int PACKAGE_START2_INDEX = 1;
-    protected static final int PACKAGE_PAYLOAD_LENGTH_START_INDEX = 2;
-    protected static final int PACKAGE_PAYLOAD_LENGTH_END_INDEX = 3;
-    protected static final int PACKAGE_COMMAND_ID_INDEX = 4;
-
     protected static final byte PACKAGE_START1_VALUE = intToUint8Byte(0xA0);
     protected static final byte PACKAGE_START2_VALUE = intToUint8Byte(0xA1);
     protected static final byte CR = intToUint8Byte(0x0D);
     protected static final byte LF = intToUint8Byte(0x0A);
-
-    public static final byte COMMAND_ACK_N = intToUint8Byte(0x00);
-    public static final byte COMMAND_ACK = intToUint8Byte(0x01);
-    public static final byte COMMAND_ACK_P = intToUint8Byte(0x02);
-    public static final byte COMMAND_REQ_STATUS = intToUint8Byte(0x11);
-    public static final byte COMMAND_ALERT_APP = intToUint8Byte(0x15);
-    public static final byte COMMAND_UNLOCK = intToUint8Byte(0x21);
-    public static final byte COMMAND_LOG = intToUint8Byte(0x24);
-
-    //To parse data from gatt characteristic.
 
     static final synchronized byte[] buildCMD(byte[] cmdPayload) {
         int cmdPayloadLength = cmdPayload.length;
@@ -635,7 +616,7 @@ public class ScanDevice extends Fragment {
         byte[] pkgData = new byte[cmdPayloadLength + PACKAGE_BASE_LENGTH];
         pkgData[0] = PACKAGE_START1_VALUE;
         pkgData[1] = PACKAGE_START2_VALUE;
-        byte[] msb16PayloadLength= msbUint16ToBytes(cmdPayloadLength);
+        byte[] msb16PayloadLength = msbUint16ToBytes(cmdPayloadLength);
         pkgData[2] = msb16PayloadLength[0];
         pkgData[3] = msb16PayloadLength[1];
         System.arraycopy(cmdPayload, 0, pkgData, 4, cmdPayloadLength);
@@ -653,12 +634,12 @@ public class ScanDevice extends Fragment {
         return payloadCheckSum;
     }
 
-
     // Converting msb unit16 to bytes
     public static byte[] msbUint16ToBytes(int value) {
         byte[] bytes = new byte[2];
         bytes[0] = (byte) ((value & 0xFF00) >> 8);
         bytes[1] = (byte) (value & 0xFF);
-        return bytes;}
+        return bytes;
+    }
 
 }
