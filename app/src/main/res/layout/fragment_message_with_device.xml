@@ -50,7 +50,7 @@
             android:layout_weight="1"
             android:ems="10"
             android:gravity="center"
-            android:hint="Enter Input" />
+            android:hint="Enter CMD" />
 
 
     </LinearLayout>
