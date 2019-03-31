@@ -21,7 +21,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         // Set Activity Title
-        setTitle("OTOHUNTER UNLOCKER");
+        setTitle("BLE Device Unlocker");
 
         mViewPager = findViewById(R.id.container);
 
