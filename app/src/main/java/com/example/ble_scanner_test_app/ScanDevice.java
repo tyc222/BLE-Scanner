@@ -39,6 +39,7 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.example.ble_scanner_test_app.Presenter.BluetoothSetup;
 import com.example.ble_scanner_test_app.Utility.Conversions;
 import com.example.ble_scanner_test_app.Utility.UUIDs;
 
@@ -84,7 +85,7 @@ public class ScanDevice extends Fragment {
     String messageString;
 
     // Declare bluetooth adapter
-    BluetoothAdapter bluetoothAdapter;
+    public static BluetoothAdapter bluetoothAdapter;
 
     // Define a string adapter which will handle the data of the device listview
     ArrayAdapter<String> listViewAdapter;
@@ -235,10 +236,8 @@ public class ScanDevice extends Fragment {
             }
         });
 
-
-        //Set up bluetooth adapter and ble services on phone
-        final BluetoothManager bluetoothManager = (BluetoothManager) getActivity().getSystemService(Context.BLUETOOTH_SERVICE);
-        bluetoothAdapter = bluetoothManager.getAdapter();
+        BluetoothSetup setupBluetooth = new BluetoothSetup();
+        setupBluetooth.setBluetoothManager(getActivity());
 
         /**
          Buttons
